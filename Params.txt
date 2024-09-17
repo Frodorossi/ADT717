@@ -1,0 +1,7 @@
+
+Parameters for parsing ADBS TX.log and 717 logfiles.
+
+TX.log Column split character:' | '
+
+717 logfile Column split character:' '
+Extra information at start of Row by Column:'8'
