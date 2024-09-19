@@ -1,3 +1,4 @@
+from datetime import datetime
 
 class logTX():
     payloadUpdates = []
@@ -27,26 +28,19 @@ class logTX():
         condensedList = []
         iteration = 0
         identifiers = []
+        
         for row in logList:
             iteration +=1
-            if iteration%1000 == 0:
-                percent = round((iteration/len(logList))*100, 2)
-                print(f'{percent}%')
-            if len(row) > 4:
-                time, identifier, payload = self.getInfo(row)
+            self.progressUpdate(iteration, logList, 1000)
             
-                if not identifier in identifiers:
-                    identifiers.append(identifier)
-                    self.payloadUpdates.append([identifier, 0, 'empty', 'empty'])
+            if len(row) > 4:
+                time, identifier, payload, identifiers = self.getInfo(row, identifiers)
                 
                 for i in range(len(self.payloadUpdates)):
                     
                     if identifier == self.payloadUpdates[i][0]:
                         
-                        if self.payloadUpdates[i][2] == 'empty':
-                            self.payloadUpdates[i][2] = time
-                        if self.payloadUpdates[i][3] == 'empty':
-                            self.payloadUpdates[i][3] == time
+                        dint = self.checkForDataLoss(time, i)
                         
                         if payload != self.payloadUpdates[i][1]:
                             self.payloadUpdates[i][1] = payload
@@ -54,8 +48,13 @@ class logTX():
             else:
                 condensedList.append(row)
         return condensedList
+    
+    def progressUpdate(self, iteration, logList, divisor):
+         if iteration%divisor == 0:
+                percent = round((iteration/len(logList))*100, 2)
+                print(f'{percent}%')
                     
-    def getInfo(self, row):
+    def getInfo(self, row, identifiers):
         time = row[0]
         label = row[1]
         source = row[2]
@@ -66,7 +65,10 @@ class logTX():
         except:
             ssm = '00'
         identifier = f'{label} {source} {sdi} {ssm}'
-        return time, identifier, payload
+        if not identifier in identifiers:
+            identifiers.append(identifier)
+            self.payloadUpdates.append([identifier, 0, 'empty', 'empty'])
+        return time, identifier, payload, identifiers
     
     def reformat(self, list, column):
         formattedList = []
@@ -78,3 +80,15 @@ class logTX():
             tempRow = tempRow[:-extraChars]
             formattedList.append(tempRow)
         return formattedList
+    
+    def checkForDataLoss(self, time, i):
+        previousTime = self.payloadUpdates[i][3]
+        if self.payloadUpdates[i][3] == 'empty':
+            self.payloadUpdates[i][3] == time
+            previousTime = time
+        t1 = datetime.strptime(previousTime, '%H:%M:%S:%f')
+        t2 = datetime.strptime(time, '%H:%M:%S:%f')
+        delta = t2 - t1
+        dint = delta.total_seconds()
+        self.payloadUpdates[i][3] = time
+        return dint
